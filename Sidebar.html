@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    :root { --primary: #4e54c8; --secondary: #8f94fb; --accent: #00cdac; --bg-light: #f4f7f6; --text-dark: #333; }
+    body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, var(--bg-light) 0%, #ffffff 100%); margin: 0; padding: 15px; color: var(--text-dark); }
+    .header { text-align: center; margin-bottom: 20px; color: var(--primary); }
+    .header h2 { margin: 0; font-size: 18px; font-weight: 600; }
+    .header span { font-size: 12px; color: #666; }
+    .card { background: white; border-radius: 12px; padding: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 15px; border-left: 5px solid var(--primary); }
+    .form-group { margin-bottom: 10px; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; outline: none; }
+    input:focus { border-color: var(--primary); }
+    button { width: 100%; padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 5px; }
+    .btn-primary { background: linear-gradient(to right, var(--primary), var(--secondary)); color: white; }
+    .btn-danger { background: #ff5f6d; color: white; }
+    .btn-success { background: var(--accent); color: white; }
+    .btn-outline { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+    .divider { height: 1px; background: #eee; margin: 15px 0; }
+    .status { font-size: 11px; text-align: center; margin-top: 10px; color: #888; }
+    .tabs { display: flex; gap: 5px; margin-bottom: 10px; }
+    .tab { flex: 1; text-align: center; padding: 5px; font-size: 12px; cursor: pointer; border-radius: 5px; background: #eee; }
+    .tab.active { background: var(--primary); color: white; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <span class="material-icons" style="font-size: 32px;">school</span>
+    <h2>Admin Sekolah</h2>
+    <span>Panel Kontrol Ledger Nilai</span>
+  </div>
+
+  <div class="card">
+    <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; color: var(--primary);">KONFIGURASI</div>
+    <div class="form-group"><select id="tahunAjar"><option value="2025/2026">2025/2026</option><option value="2026/2027">2026/2027</option></select></div>
+    <div class="form-group"><select id="semester"><option value="Ganjil">Ganjil</option><option value="Genap">Genap</option></select></div>
+    <button class="btn-primary" onclick="simpanConfig()"><span class="material-icons">save</span> Simpan</button>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('tambah')">Tambah</div>
+    <div class="tab" onclick="switchTab('hapus')">Hapus</div>
+    <div class="tab" onclick="switchTab('import')">Import</div>
+  </div>
+
+  <div id="tab-tambah" class="card">
+    <input type="text" id="nis" placeholder="NIS Siswa" class="form-group">
+    <input type="text" id="nama" placeholder="Nama Lengkap" class="form-group">
+    <input type="text" id="kelas" placeholder="Kelas" class="form-group">
+    <button class="btn-success" onclick="tambahData()"><span class="material-icons">person_add</span> Tambah</button>
+  </div>
+
+  <div id="tab-hapus" class="card hidden">
+    <input type="text" id="nisHapus" placeholder="Masukkan NIS" class="form-group">
+    <button class="btn-danger" onclick="hapusData()"><span class="material-icons">delete</span> Hapus</button>
+  </div>
+
+  <div id="tab-import" class="card hidden">
+    <button class="btn-outline" onclick="downloadTemplate()"><span class="material-icons">download</span> Template</button>
+    <div class="divider"></div>
+    <input type="file" id="uploadFile" accept=".csv, .xlsx">
+    <button class="btn-primary" onclick="uploadData()"><span class="material-icons">cloud_upload</span> Upload</button>
+  </div>
+
+  <div class="card">
+    <button class="btn-outline" onclick="refreshLedger()"><span class="material-icons">sync</span> Refresh Ledger</button>
+  </div>
+  <div id="status" class="status">Siap digunakan...</div>
+
+  <script>
+    function switchTab(t){document.querySelectorAll('.card').forEach(e=>{if(e.id.startsWith('tab-'))e.classList.add('hidden')});document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));document.getElementById('tab-'+t).classList.remove('hidden');event.target.classList.add('active')}
+    function setStatus(m){document.getElementById('status').innerText=m}
+    function tambahData(){const n=document.getElementById('nis').value,m=document.getElementById('nama').value,k=document.getElementById('kelas').value;if(!n||!m)return setStatus("Isi data lengkap!");setStatus("Proses...");google.script.run.withSuccessHandler(r=>{setStatus(r.message);if(r.success){document.getElementById('nis').value='';document.getElementById('nama').value=''}}).tambahSiswa({nis:n,nama:m,kelas:k})}
+    function hapusData(){const n=document.getElementById('nisHapus').value;if(!n)return setStatus("Isi NIS!");if(confirm("Hapus NIS "+n+"?")){setStatus("Menghapus...");google.script.run.withSuccessHandler(r=>{setStatus(r.message);if(r.success)document.getElementById('nisHapus').value=''}).hapusSiswa(n)}}
+    function simpanConfig(){setStatus("Menyimpan...");google.script.run.withSuccessHandler(setStatus).simpanKonfigurasi(document.getElementById('tahunAjar').value,document.getElementById('semester').value)}
+    function refreshLedger(){setStatus("Syncing...");google.script.run.withSuccessHandler(()=>setStatus("Selesai!")).refreshLedger()}
+    function downloadTemplate(){const c="data:text/csv;charset=utf-8,NIS,Nama Lengkap,Kelas\n1001,Siswa A,X TKJ 1",e=encodeURI(c),l=document.createElement("a");l.href=e,l.download="template.csv",document.body.appendChild(l),l.click(),setStatus("Downloaded.")}
+    function uploadData(){const i=document.getElementById('uploadFile'),f=i.files[0];if(!f)return setStatus("Pilih file!");setStatus("Membaca...");const r=new FileReader;r.onload=function(e){const d=new Uint8Array(e.target.result),w=XLSX.read(d,{type:'array'}),j=XLSX.utils.sheet_to_json(w.Sheets[w.SheetNames[0]],{header:1});if(isNaN(j[0][0]))j.shift();google.script.run.withSuccessHandler(s=>{setStatus(s);i.value=''}).prosesUpload(j)},r.readAsArrayBuffer(f)}
+  </script>
+</body>
+</html>
